@@ -65,6 +65,11 @@ class OrderOutput(graphene.ObjectType):
     message = graphene.String()
     errors = graphene.List(graphene.String)
 
+class LowStockUpdateOutput(graphene.ObjectType):
+    products = graphene.List(ProductType)
+    message = graphene.String()
+    errors = graphene.List(graphene.String)
+
 # Utility Functions
 def validate_phone_format(phone):
     """Validate phone number format"""
@@ -240,6 +245,40 @@ class CreateOrder(graphene.Mutation):
         except Exception as e:
             return OrderOutput(errors=[str(e)])
 
+class UpdateLowStockProducts(graphene.Mutation):
+    """Update products with stock < 10 by incrementing stock by 10"""
+    
+    Output = LowStockUpdateOutput
+    
+    def mutate(self, info):
+        errors = []
+        updated_products = []
+        
+        try:
+            # Find products with stock < 10
+            low_stock_products = Product.objects.filter(stock__lt=10)
+            
+            if not low_stock_products.exists():
+                return LowStockUpdateOutput(
+                    products=[],
+                    message="No products with low stock found"
+                )
+            
+            # Update each product's stock
+            for product in low_stock_products:
+                old_stock = product.stock
+                product.stock += 10
+                product.save()
+                updated_products.append(product)
+            
+            return LowStockUpdateOutput(
+                products=updated_products,
+                message=f"Successfully updated {len(updated_products)} products with low stock"
+            )
+            
+        except Exception as e:
+            return LowStockUpdateOutput(errors=[str(e)])
+
 # Query Class
 class Query(graphene.ObjectType):
     hello = graphene.String()
@@ -281,3 +320,4 @@ class Mutation(graphene.ObjectType):
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
