@@ -9,8 +9,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Navigate to the Django project root (two levels up from cron_jobs)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Change to project directory
-cd "$PROJECT_ROOT"
+# Check if we can change to project directory
+if cd "$PROJECT_ROOT"; then
+    echo "Changed to project directory: $(pwd)"
+else
+    echo "Error: Could not change to project directory: $PROJECT_ROOT"
+    exit 1
+fi
+
+# Store current working directory
+cwd="$(pwd)"
 
 # Execute Django shell command to delete inactive customers
 DELETED_COUNT=$(python manage.py shell << 'EOF'
